@@ -91,8 +91,8 @@ def plot_decision_regions(X, y, classifier, resolution = 0.02):
     plt.show()
 
 def plot_cost_function_at_different_learning_rates(X, y, rate1 = 0.01, rate2 = 0.0001):
-    """ Description: TODO"""
-    fig, ax = plt.subplots(nrows = 1, ncols = 2, figsize = (8, 4))
+    """ Description: Draws a line graph showing the cost curve at each epoch"""
+    ax = plt.subplots(nrows = 1, ncols = 2, figsize = (8, 4))
     # Learing rate 1
     ada1 = AdalineGD(epochs = 10, learningRate = rate1).fit(X, y)
     ax[0].plot(range(1, len(ada1.cost_) + 1), np.log10(ada1.cost_), marker='o')
@@ -108,14 +108,15 @@ def plot_cost_function_at_different_learning_rates(X, y, rate1 = 0.01, rate2 = 0
 
     plt.show()
 
-def plot_cost_function_with_stadardised_data(X, y):
-    """ Description: TODO"""
+def plot_cost_function_with_stadardised_data(X, y, learningRate):
+    """ Description: Draws a line graph showing the cost curve at each epoch    
+        * Takes original data and will standardise it   *"""
     #Standardising data
     X_std = np.copy(X)
     X_std[:, 0] = (X[:, 0] - X[:, 0].mean()) / X[:, 0].std()
     X_std[:, 1] = (X[:, 1] - X[:, 1].mean()) / X[:, 1].std()
     #Adaline with feature scaling
-    ada = AdalineGD(epochs=15, learningRate=0.01)
+    ada = AdalineGD(epochs=15, learningRate=learningRate)
     ada.fit(X_std, y)
     plt.plot(range(1, len(ada.cost_) + 1), ada.cost_, marker='o')
     plt.xlabel('Sum-squared-errors')
@@ -123,10 +124,64 @@ def plot_cost_function_with_stadardised_data(X, y):
 
 
 #Program========================================================================================================================
+usageString = 'Usage:\nFor help:\tadaline.py -help\nCompare Learning rates:\tadaline.py -learningRates [rate 1] [rate 2]\nPlot decision region:\tadaline.py -trainedData\nPlot cost function standardised:\tadaline.py -cost_Function_Standardised [learing rate]\nTo input data:\tadaline.py [septal length (cm)] [petal length (cm)]'
+if("-help" in sys.argv):    
+    print(usageString)
+    sys.exit()
 df = pd.read_csv(os.path.join(os.path.dirname(__file__), "../Percerptron_Learning_Algorithm(Python)/iris.csv"), header = None)
 y = df.iloc[0:100, 4].values
 y = np.where(y == 'Iris-setosa', -1, 1)
 X = df.iloc[0:100, [0,2]].values
+#Standardising data
+X_std = np.copy(X)
+X_std[:, 0] = (X[:, 0] - X[:, 0].mean()) / X[:, 0].std()
+X_std[:, 1] = (X[:, 1] - X[:, 1].mean()) / X[:, 1].std()
+ada = AdalineGD()
+ada.fit(X_std, y)
 
-plot_cost_function_at_different_learning_rates(X, y, 0.0001, 0.0001)
+if("-learningRates" in sys.argv):
+    try:
+        rate1 = float(sys.argv[2])
+        rate2 = float(sys.argv[3])
+    except ValueError:
+        print("Error: invalid input")
+        print(usageString)
+        sys.exit()
+    print('r1 = ' + str(rate1) + ' r2 = ' + str(rate2))
+    if(rate1 > 1 or rate2 > 1 or rate1 < 0 or rate2 < 0):
+        print("Error: invalid input. Values must be between 0 and 1")
+        print(usageString)
+        sys.exit()
+    plot_cost_function_at_different_learning_rates(X,y,rate1,rate2)
+elif("-trainedData" in sys.argv):
+    plot_decision_regions(X_std, y, ada)
+    sys.exit()
+elif("-cost_Function_Standardised" in sys.argv):
+    try:
+        learningRate = float(sys.argv[2])
+    except ValueError:
+        print("Error: Invailid input. Value must be floats")
+        print(usageString)
+        sys.exit()
+    plot_cost_function_with_stadardised_data(X, y, learningRate)
 
+#Find class of inputed data
+if(len(sys.argv) < 3):
+    print("Error: Too few arguments passed")
+    print(usageString)
+    sys.exit()
+elif(len(sys.argv) > 3):
+    print("Error: Too many arguments passed")
+    print(usageString)
+    sys.exit()
+else:
+    try:
+        sepLen = float(sys.argv[1])
+        petLen = float(sys.argv[2])
+    except ValueError:
+        print("Error: Invailid inputs. Values must be floats")
+        print(usageString)
+        sys.exit()
+    inputVal = np.array([sepLen, petLen])
+    if(ada.predict(inputVal) == -1):    print("Iris-setosa")
+    else:   print("Iris-versicolor")
